@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C1 Grammar Immersive Trainer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.9);
+            --correct: #2ecc71;
+            --wrong: #e74c3c;
+        }
+
+        body {
+            font-family: 'Lexend', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.5s ease-in-out;
+            background-size: cover;
+            background-position: center;
+        }
+
+        #quiz-app {
+            width: 90%;
+            max-width: 700px;
+            background: var(--glass);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .question-box h2 { font-size: 1.4rem; margin-bottom: 25px; color: #333; }
+
+        .options { display: grid; gap: 15px; }
+
+        button.option-btn {
+            background: #fff;
+            border: 2px solid #ddd;
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-family: inherit;
+            transition: 0.3s;
+        }
+
+        button.option-btn:hover { border-color: #3498db; background: #f0f8ff; }
+
+        #results { display: none; }
+        
+        canvas { max-width: 200px; margin: 20px auto; }
+
+        .error-log { text-align: left; background: #fff; padding: 15px; border-radius: 10px; margin-top: 20px; max-height: 250px; overflow-y: auto; }
+        
+        .progress-bar { font-size: 0.8rem; color: #666; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    </style>
+</head>
+<body id="body-bg">
+
+<div id="quiz-app">
+    <div id="game-container">
+        <div class="progress-bar" id="progress">Question 1 / 12</div>
+        <div class="question-box">
+            <h2 id="question-text">Loading...</h2>
+            <div class="options" id="options-container"></div>
+        </div>
+    </div>
+
+    <div id="results">
+        <h1>Analysis Complete</h1>
+        <canvas id="scoreChart"></canvas>
+        <div id="scoreLabel" style="font-size: 2rem; font-weight: bold;"></div>
+        <div class="error-log" id="errorLog">
+            <h3>Review these structures:</h3>
+            <ul id="mistakeList"></ul>
+        </div>
+        <button onclick="location.reload()" style="margin-top:20px; padding:15px 30px; border-radius:30px; border:none; background:#3498db; color:white; cursor:pointer; font-weight:bold;">RESTART</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "Had he ... more attention to the details, the project wouldn't be failing now.", opts: ["paid", "pay", "had paid"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1454165833767-027ffea9e778?q=80&w=1000')" },
+        { q: "... you to change your mind, we would be delighted to host you.", opts: ["Were", "Should", "Had"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1000')" },
+        { q: "If she weren't so talented, she ... that award last night.", opts: ["wouldn't have won", "wouldn't win", "hadn't won"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1531058020387-3be344556be6?q=80&w=1000')" },
+        { q: "Had I ... seen it with my own eyes, I'd never have believed the rumors.", opts: ["not", "n't", "no"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1506919227145-9925b820673e?q=80&w=1000')" },
+        { q: "If I ... French, I would have helped those tourists yesterday.", opts: ["spoke", "had spoken", "would speak"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1000')" },
+        { q: "... anyone call, tell them I'll be back in an hour.", opts: ["Should", "Were", "Had"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1523966211575-eb4a01e7dd51?q=80&w=1000')" },
+        { q: "Were it ... for your constant support, I wouldn't be where I am today.", opts: ["not", "no", "hadn't"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1521791136064-7986c29535a7?q=80&w=1000')" },
+        { q: "Had they known about the weather, they ... their trip.", opts: ["would have postponed", "would postpone", "will postpone"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1000')" },
+        { q: "If I weren't so busy today, I ... you to the airport this morning.", opts: ["would have driven", "would drive", "had driven"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=1000')" },
+        { q: "... the government to raise taxes, there would be a public outcry.", opts: ["Were", "Should", "Had"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1554224155-169641357599?q=80&w=1000')" },
+        { q: "I would be much healthier now if I ... smoking years ago.", opts: ["had quit", "quit", "would quit"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1527137342181-19aab11a8ee1?q=80&w=1000')" },
+        { q: "Had I not ... your advice, I would have made a huge mistake.", opts: ["followed", "follow", "following"], ans: 0, bg: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1454165833767-027ffea9e778?q=80&w=1000')" }
+    ];
+
+    let current = 0;
+    let score = 0;
+    let mistakes = [];
+
+    function render() {
+        const q = questions[current];
+        document.getElementById('body-bg').style.backgroundImage = q.bg;
+        document.getElementById('progress').innerText = `Step ${current + 1} / ${questions.length}`;
+        document.getElementById('question-text').innerText = q.q;
+        
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        
+        q.opts.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => handleSelect(i);
+            container.appendChild(btn);
+        });
+    }
+
+    function handleSelect(idx) {
+        if (idx === questions[current].ans) {
+            score++;
+        } else {
+            mistakes.push(questions[current].q.replace('...', `[${questions[current].opts[questions[current].ans]}]`));
+        }
+
+        current++;
+        if (current < questions.length) render();
+        else finish();
+    }
+
+    function finish() {
+        document.getElementById('game-container').style.display = 'none';
+        document.getElementById('results').style.display = 'block';
+        document.getElementById('scoreLabel').innerText = `${Math.round((score/12)*100)}%`;
+
+        if (mistakes.length > 0) {
+            mistakes.forEach(m => {
+                const li = document.createElement('li');
+                li.innerText = m;
+                document.getElementById('mistakeList').appendChild(li);
+            });
+        } else {
+            document.getElementById('errorLog').innerHTML = "<h3>Perfect! You've mastered C1 Conditionals.</h3>";
+        }
+
+        new Chart(document.getElementById('scoreChart'), {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [score, 12 - score],
+                    backgroundColor: ['#2ecc71', '#e74c3c']
+                }]
+            },
+            options: { cutout: '80%' }
+        });
+    }
+
+    render();
+</script>
+</body>
+</html>
